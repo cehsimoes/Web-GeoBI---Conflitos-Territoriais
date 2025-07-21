@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "target": "ES6",
+    "allowJs": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["react", "react-dom"],   // <-- adiciona explicitamente os tipos do React e ReactDOM
+    "lib": ["dom", "dom.iterable", "esnext"]  // <-- adiciona libs de DOM para JSX e features ESNext
+  }
+}

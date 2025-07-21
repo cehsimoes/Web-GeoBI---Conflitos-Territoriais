@@ -1,0 +1,31 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 20px;
+}
+
+.filter-container {
+  background: #f1f1f1;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.map-container-scroll {
+  overflow-x: auto;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+}
+
+.charts-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+}
