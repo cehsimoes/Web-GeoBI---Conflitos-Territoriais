@@ -1,27 +1,48 @@
-// Importa o componente Chart da biblioteca react-google-charts
+// Import the Chart component from the react-google-charts library
 import { Chart } from 'react-google-charts';
 
-// Define a interface das props recebidas pelo componente
+// Define the expected structure of the component's props
 interface Props {
-  analysisData: any[]; // Espera um array de objetos com dados a serem analisados
+  analysisData: any[]; // An array of objects representing the analysis data
 }
 
-// Componente responsável por renderizar gráficos baseados em dados de análise
+// Component responsible for rendering charts based on the provided analysis data
 export default function ChartsComponent({ analysisData }: Props) {
-  // Reduz os dados para gerar estatísticas agrupadas por sigla de estado (UF)
+  // Aggregate statistics grouped by state abbreviation (UF - "siglaUF")
   const stats = analysisData.reduce((acc: any, item: any) => {
-    const uf = item.properties.siglaUF;       // Extrai a sigla do estado (UF)
-    const area = item.properties.area || 0;   // Obtém a área do item, ou 0 se não estiver definida
+    const uf = item.properties.siglaUF;         // Get the state abbreviation
+    const area = item.properties.area || 0;     // Get the area value or default to 0 if missing
 
-    // Se a UF ainda não foi registrada no acumulador, inicializa os valores
+    // Initialize state entry in accumulator if it doesn't exist yet
     if (!acc[uf]) acc[uf] = { count: 0, area: 0 };
 
-    // Incrementa o contador e a área total para a UF correspondente
+    // Increment the counter and area for the corresponding state
     acc[uf].count += 1;
     acc[uf].area += area;
 
-    return acc; // Retorna o acumulador atualizado
-  }, {}); // Inicialmente o acumulador é um objeto vazio
+    return acc; // Return the updated accumulator
+  }, {}); // Start with an empty object for accumulation
 
-  // Prepara os dados no formato necessário para o gráfico de pizza (quantidade por UF)
-  const pieData =
+  // Prepare the data for the pie chart: counts by state
+  const pieData = [['State', 'Count']];
+
+  // Prepare the data for the bar chart: total area by state
+  const barData = [['State', 'Total Area']];
+
+  // Populate both datasets using the aggregated stats
+  Object.entries(stats).forEach(([uf, val]: any) => {
+    pieData.push([uf, val.count]);  // Add count data to pie chart
+    barData.push([uf, val.area]);   // Add area data to bar chart
+  });
+
+  // Render both charts (Pie and Bar) inside a scrollable container
+  return (
+    <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+      {/* Pie Chart: Shows the number of items per state */}
+      <Chart chartType="PieChart" data={pieData} width="100%" height="300px" />
+
+      {/* Bar Chart: Shows the total area of items per state */}
+      <Chart chartType="BarChart" data={barData} width="100%" height="300px" />
+    </div>
+  );
+}

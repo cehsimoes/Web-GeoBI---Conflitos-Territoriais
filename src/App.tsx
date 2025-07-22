@@ -9,32 +9,30 @@ interface GeoJsonData {
   features: any[];
 }
 
-// Lista de estados brasileiros (siglas)
+// List of Brazilian states (abbreviations)
 const estadosBrasileiros = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES',
-  'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR',
-  'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
-  'SP', 'SE', 'TO'
-];
+  'AM', 'PA', 'MG'];
 
-// Componente para ajustar zoom automaticamente para dados no mapa
+// Component to auto-fit map view to GeoJSON data bounds
 function FitBounds({ geojson }: { geojson: GeoJsonData | null }) {
   const map = useMap();
 
   useEffect(() => {
     if (geojson && geojson.features.length > 0) {
-      const coords = geojson.features.flatMap((f) => turf.getCoords(f));
-      const flatCoords = coords.flat(3);
+      // Compute bounding boxes for each feature to extract map extent
       const latLngs = [];
-      // coords podem ter profundidade variada, vamos garantir [lat,lng] extração correta
-      // Simplificação: pegamos primeiro par (lng, lat) de cada polígono/ponto
+
       geojson.features.forEach((feature) => {
         try {
-          const bbox = turf.bbox(feature);
-          latLngs.push([bbox[1], bbox[0]]); // [lat, lng]
-          latLngs.push([bbox[3], bbox[2]]);
-        } catch {}
+          const bbox = turf.bbox(feature); // [minX, minY, maxX, maxY]
+          latLngs.push([bbox[1], bbox[0]]); // bottom-left corner [lat, lng]
+          latLngs.push([bbox[3], bbox[2]]); // top-right corner [lat, lng]
+        } catch {
+          // Skip feature if bbox fails
+        }
       });
+
+      // Fit map to bounds with padding
       if (latLngs.length > 0) {
         map.fitBounds(latLngs as any, { padding: [50, 50] });
       }
@@ -45,15 +43,17 @@ function FitBounds({ geojson }: { geojson: GeoJsonData | null }) {
 }
 
 export default function App() {
+  // States to hold loaded GeoJSON data
   const [imoveis, setImoveis] = useState<GeoJsonData | null>(null);
   const [terras, setTerras] = useState<GeoJsonData | null>(null);
-  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]); // User-selected states
 
-  // Filtrar imóveis e terras por estado (suposição: propriedade "sigla_uf" em properties)
+  // Filters features by selected Brazilian states
   function filtrarPorEstado(geojson: GeoJsonData | null, estados: string[]) {
     if (!geojson) return null;
-    if (estados.length === 0) return geojson; // sem filtro, retorna tudo
+    if (estados.length === 0) return geojson; // No filter, return all features
 
+    // Match by different possible property names for UF
     const filteredFeatures = geojson.features.filter((f) => {
       const uf = f.properties?.sigla_uf || f.properties?.UF || f.properties?.estado || '';
       return estados.includes(uf);
@@ -65,32 +65,33 @@ export default function App() {
     };
   }
 
-  // Cálculo área em km²
+  // Calculates the total area (in km²) of a GeoJSON
   function calcularAreaKm2(geojson: GeoJsonData | null) {
     if (!geojson || geojson.features.length === 0) return 0;
     try {
-      const area_m2 = turf.area(geojson);
-      return area_m2 / 1_000_000;
+      const area_m2 = turf.area(geojson); // Returns area in square meters
+      return area_m2 / 1_000_000; // Convert to km²
     } catch {
       return 0;
     }
   }
 
-  // Calcular interseções entre imóveis e terras indígenas
+  // Computes the intersection between two GeoJSONs
   function calcularIntersecao(imoveisGeojson: GeoJsonData | null, terrasGeojson: GeoJsonData | null) {
     if (!imoveisGeojson || !terrasGeojson) return null;
 
     const intersecoes = [];
 
+    // Compare each property with each indigenous land
     imoveisGeojson.features.forEach((imovel) => {
       terrasGeojson.features.forEach((terra) => {
         try {
-          const intersect = turf.intersect(imovel, terra);
+          const intersect = turf.intersect(imovel, terra); // Returns intersection polygon
           if (intersect) {
-            intersecoes.push(intersect);
+            intersecoes.push(intersect); // Save valid intersection
           }
         } catch {
-          // ignorar erros
+          // Ignore errors for invalid geometry
         }
       });
     });
@@ -101,29 +102,31 @@ export default function App() {
     };
   }
 
-  // Estados filtrados
+  // Apply filters and compute intersections
   const imoveisFiltrados = filtrarPorEstado(imoveis, selectedStates);
   const terrasFiltradas = filtrarPorEstado(terras, selectedStates);
   const intersecaoGeojson = calcularIntersecao(imoveisFiltrados, terrasFiltradas);
 
-  // Áreas
+  // Area summaries
   const areaImoveisKm2 = calcularAreaKm2(imoveisFiltrados);
   const areaTerrasKm2 = calcularAreaKm2(terrasFiltradas);
   const areaIntersecaoKm2 = calcularAreaKm2(intersecaoGeojson);
 
   useEffect(() => {
-    // Carregar GeoJSON dos arquivos públicos
+    // Load real estate GeoJSON
     fetch('/data/imoveis_fake_100.geojson')
       .then((res) => res.json())
       .then(setImoveis)
       .catch(() => setImoveis(null));
 
+    // Load indigenous lands GeoJSON
     fetch('/data/terras_indigenas_fake.geojson')
       .then((res) => res.json())
       .then(setTerras)
       .catch(() => setTerras(null));
   }, []);
 
+  // Handles checkbox state change for each state
   function handleCheckboxChange(sigla: string) {
     setSelectedStates((prev) =>
       prev.includes(sigla)
@@ -132,7 +135,7 @@ export default function App() {
     );
   }
 
-  // Dados para gráfico de barras exemplo (imóveis por estado)
+  // Prepare data for bar chart (number of properties per state)
   const chartDataBar = [
     ['Estado', 'Número de Imóveis'],
     ...estadosBrasileiros.map((uf) => {
@@ -144,7 +147,7 @@ export default function App() {
     }),
   ];
 
-  // Dados para gráfico de pizza exemplo (área por tipo)
+  // Prepare data for pie chart (area breakdown)
   const chartDataPie = [
     ['Tipo', 'Área (km²)'],
     ['Imóveis', areaImoveisKm2],
@@ -154,6 +157,8 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      
+      {/* Sidebar with filters and charts */}
       <aside
         style={{
           width: '320px',
@@ -163,7 +168,8 @@ export default function App() {
           backgroundColor: '#f9f9f9',
         }}
       >
-        <h2>Filtro por Estado</h2>
+        {/* State selection checkboxes */}
+        <h2>Filter by State</h2>
         <div style={{ maxHeight: 250, overflowY: 'auto', marginBottom: 20 }}>
           {estadosBrasileiros.map((sigla) => (
             <label key={sigla} style={{ display: 'block', marginBottom: 6 }}>
@@ -177,12 +183,14 @@ export default function App() {
           ))}
         </div>
 
-        <h3>Resumo de Áreas (km²)</h3>
-        <p><strong>Imóveis:</strong> {areaImoveisKm2.toFixed(2)}</p>
-        <p><strong>Terras Indígenas:</strong> {areaTerrasKm2.toFixed(2)}</p>
-        <p><strong>Interseção:</strong> {areaIntersecaoKm2.toFixed(2)}</p>
+        {/* Area statistics */}
+        <h3>Area Summary (km²)</h3>
+        <p><strong>Properties:</strong> {areaImoveisKm2.toFixed(2)}</p>
+        <p><strong>Indigenous Lands:</strong> {areaTerrasKm2.toFixed(2)}</p>
+        <p><strong>Intersection:</strong> {areaIntersecaoKm2.toFixed(2)}</p>
 
-        <h3>Gráfico: Número de Imóveis por Estado</h3>
+        {/* Bar chart: number of properties per state */}
+        <h3>Chart: Properties per State</h3>
         <Chart
           chartType="BarChart"
           width="100%"
@@ -191,12 +199,13 @@ export default function App() {
           options={{
             legend: { position: 'none' },
             chartArea: { width: '80%' },
-            hAxis: { title: 'Número de Imóveis' },
-            vAxis: { title: 'Estado' },
+            hAxis: { title: 'Number of Properties' },
+            vAxis: { title: 'State' },
           }}
         />
 
-        <h3>Gráfico: Área por Tipo</h3>
+        {/* Pie chart: area distribution */}
+        <h3>Chart: Area by Type</h3>
         <Chart
           chartType="PieChart"
           width="100%"
@@ -209,18 +218,21 @@ export default function App() {
         />
       </aside>
 
+      {/* Main content: interactive map */}
       <main style={{ flexGrow: 1, position: 'relative' }}>
         <MapContainer
           style={{ height: '100%', width: '100%' }}
-          center={[-15.8, -47.9]}
+          center={[-15.8, -47.9]} // Brazil central coordinates
           zoom={4}
           scrollWheelZoom={true}
         >
+          {/* Base map layer from OpenStreetMap */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="© OpenStreetMap contributors"
           />
 
+          {/* Render filtered properties in blue */}
           {imoveisFiltrados && (
             <GeoJSON
               data={imoveisFiltrados}
@@ -228,6 +240,7 @@ export default function App() {
             />
           )}
 
+          {/* Render filtered indigenous lands in green */}
           {terrasFiltradas && (
             <GeoJSON
               data={terrasFiltradas}
@@ -235,6 +248,7 @@ export default function App() {
             />
           )}
 
+          {/* Render intersection areas in red */}
           {intersecaoGeojson && intersecaoGeojson.features.length > 0 && (
             <GeoJSON
               data={intersecaoGeojson}
@@ -242,7 +256,7 @@ export default function App() {
             />
           )}
 
-          {/* Ajusta o zoom para imóveis */}
+          {/* Auto-zoom to filtered properties */}
           <FitBounds geojson={imoveisFiltrados} />
         </MapContainer>
       </main>
