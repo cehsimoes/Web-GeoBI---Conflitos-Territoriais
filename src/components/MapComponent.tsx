@@ -10,7 +10,7 @@ interface Props {
   onAnalysisReady: (analysisData: any[]) => void; // Callback to notify when analysis data is ready (currently unused)
   selectedStates: string[]; // Array of selected state abbreviations (currently unused)
 }
-
+//jlhlkh
 // Main functional component that renders a Leaflet map with GeoJSON data
 export default function MapComponent({ onAnalysisReady, selectedStates }: Props) {
   // State to store features of rural properties (imóveis)
