@@ -138,7 +138,7 @@ export default function App() {
   }
 
   const chartDataBar = [
-    ['Estado', 'Número de Imóveis'],
+    ['State', 'Properties Number'],
     ...estadosBrasileiros.map((uf) => {
       const count =
         imoveisFiltrados?.features.filter((f) => getUF(f) === uf).length || 0;
