@@ -1,4 +1,3 @@
-// App.tsx
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -120,12 +119,12 @@ export default function App() {
   const areaIntersecaoKm2 = calcularAreaKm2(intersecaoGeojson);
 
   useEffect(() => {
-    fetch('/data/imoveis_fake_100.geojson')
+    fetch('data/imoveis_fake_100.geojson')
       .then((res) => res.json())
       .then(setImoveis)
       .catch(() => setImoveis(null));
 
-    fetch('/data/terras_indigenas_fake.geojson')
+    fetch('data/terras_indigenas_fake.geojson')
       .then((res) => res.json())
       .then(setTerras)
       .catch(() => setTerras(null));
