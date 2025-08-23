@@ -157,7 +157,7 @@ export default function App() {
       {/* TÍTULO NO TOPO */}
       <header style={{ backgroundColor: '#1a237e', padding: '1rem', textAlign: 'center' }}>
         <h1 style={{ color: 'white', margin: 0, fontSize: '1.5rem' }}>
-          WEB-GEOBI -- CONFLITOS TERRITORIAIS
+          WEB-GEOBI -- TERRITORIALS CONFLICTS
         </h1>
       </header>
 
